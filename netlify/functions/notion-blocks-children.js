@@ -7,17 +7,12 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ message: 'NOTION_TOKEN not configured' }) };
   }
 
-  // Extract block/page ID from: /api/notion/blocks/{id}/children
-  const parts = event.path.split('/');
-  const childrenIdx = parts.indexOf('children');
-  const blockId = childrenIdx > 0 ? parts[childrenIdx - 1] : null;
-
+  const blockId = event.queryStringParameters?.id;
   if (!blockId) {
     return { statusCode: 400, body: JSON.stringify({ message: 'Missing block ID' }) };
   }
 
   try {
-    // GET → list children (used to find blocks before clearing them)
     if (event.httpMethod === 'GET') {
       const res = await fetch(`${NOTION_API}/blocks/${blockId}/children?page_size=100`, {
         method: 'GET',
@@ -34,7 +29,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // PATCH → append children blocks
     if (event.httpMethod === 'PATCH') {
       const res = await fetch(`${NOTION_API}/blocks/${blockId}/children`, {
         method: 'PATCH',
