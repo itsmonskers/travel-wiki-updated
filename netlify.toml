@@ -6,11 +6,13 @@
   from = "/api/config"
   to = "/.netlify/functions/config"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/notion/pages"
   to = "/.netlify/functions/notion-pages"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/notion/pages/:id"
