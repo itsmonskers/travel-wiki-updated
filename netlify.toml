@@ -14,15 +14,18 @@
 
 [[redirects]]
   from = "/api/notion/pages/:id"
-  to = "/.netlify/functions/notion-pages-patch"
+  to = "/.netlify/functions/notion-pages-patch?id=:id"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/notion/blocks/:id/children"
-  to = "/.netlify/functions/notion-blocks-children"
+  to = "/.netlify/functions/notion-blocks-children?id=:id"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/notion/blocks/:id"
-  to = "/.netlify/functions/notion-blocks-delete"
+  to = "/.netlify/functions/notion-blocks-delete?id=:id"
   status = 200
+  force = true
