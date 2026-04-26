@@ -618,6 +618,13 @@ async function notionPost(body) {
   return data;
 }
 
+async function notionPatch(pageId, body) {
+  const res  = await fetch(`/api/notion/pages/${pageId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Notion patch error');
+  return data;
+}
+
 // Delete all existing blocks from a page so we can replace with fresh content
 async function clearPageBlocks(pageId) {
   try {
@@ -817,17 +824,13 @@ async function handleSubmit() {
         }));
       }
 
-      // Update city page cover if provided
-      if (cityCoverUrl) {
-        await fetch(`/api/notion/pages/${cd.pageId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cover: { type: 'external', external: { url: cityCoverUrl } } })
-        });
-      }
-
       // Clear existing placeholder blocks before pushing real content
       await clearPageBlocks(cd.pageId);
+
+      // Update city page cover if provided
+      if (cityCoverUrl) {
+        await notionPatch(cd.pageId, { cover: { type: 'external', external: { url: cityCoverUrl } } });
+      }
 
       if (cityBlocks.length) await notionAppendBlocks(cd.pageId, cityBlocks);
     }
