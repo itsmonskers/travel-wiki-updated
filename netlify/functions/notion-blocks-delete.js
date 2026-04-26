@@ -7,11 +7,8 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ message: 'NOTION_TOKEN not configured' }) };
   }
 
-  // Extract block ID from: /api/notion/blocks/{id}
-  const parts = event.path.split('/');
-  const blockId = parts[parts.length - 1];
-
-  if (!blockId || blockId === 'blocks') {
+  const blockId = event.queryStringParameters?.id;
+  if (!blockId) {
     return { statusCode: 400, body: JSON.stringify({ message: 'Missing block ID' }) };
   }
 
