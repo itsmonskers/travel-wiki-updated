@@ -7,11 +7,15 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ message: 'NOTION_TOKEN not configured' }) };
   }
 
-  // POST /api/notion/pages → create a new page
-  if (event.httpMethod === 'POST') {
+  const pageId = event.queryStringParameters?.id;
+  if (!pageId) {
+    return { statusCode: 400, body: JSON.stringify({ message: 'Missing page ID' }) };
+  }
+
+  if (event.httpMethod === 'PATCH') {
     try {
-      const res = await fetch(`${NOTION_API}/pages`, {
-        method: 'POST',
+      const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Notion-Version': NOTION_VERSION,
