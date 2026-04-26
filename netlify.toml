@@ -6,28 +6,8 @@
   from = "/api/config"
   to = "/.netlify/functions/config"
   status = 200
-  force = true
 
 [[redirects]]
-  from = "/api/notion/pages"
-  to = "/.netlify/functions/notion-pages"
+  from = "/api/notion/*"
+  to = "/.netlify/functions/notion/:splat"
   status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/notion/pages/:id"
-  to = "/.netlify/functions/notion-pages-patch?id=:id"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/notion/blocks/:id/children"
-  to = "/.netlify/functions/notion-blocks-children?id=:id"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/notion/blocks/:id"
-  to = "/.netlify/functions/notion-blocks-delete?id=:id"
-  status = 200
-  force = true
