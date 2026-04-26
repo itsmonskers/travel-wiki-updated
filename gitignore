@@ -1,0 +1,10 @@
+# Environment secrets — NEVER commit this
+.env
+.env.local
+.env.production
+
+# Netlify local dev cache
+.netlify/
+
+# Node
+node_modules/

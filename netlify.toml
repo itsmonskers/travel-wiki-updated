@@ -1,0 +1,28 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/config"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion/pages"
+  to = "/.netlify/functions/notion-pages"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion/pages/:id"
+  to = "/.netlify/functions/notion-pages-patch"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion/blocks/:id/children"
+  to = "/.netlify/functions/notion-blocks-children"
+  status = 200
+
+[[redirects]]
+  from = "/api/notion/blocks/:id"
+  to = "/.netlify/functions/notion-blocks-delete"
+  status = 200
