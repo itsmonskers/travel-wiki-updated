@@ -403,7 +403,7 @@ document.getElementById('tagInput').addEventListener('keydown', async function(e
     e.preventDefault();
     const name = this.value.trim();
     if (cityData[name]) { this.value = ''; return; }
-    cityData[name] = { pageId: null, desc: '', places: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [] };
+    cityData[name] = { pageId: null, desc: '', places: '', mapsLink: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [] };
     cityOrder.push(name);
     this.value = '';
     renderTag(name, 'creating');
@@ -472,6 +472,10 @@ function renderCityForm(name) {
       <div class="field">
         <label>Places to Visit <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— one per line</span></label>
         <textarea class="short" placeholder="Dotonbori&#10;Castle..." oninput="cityData['${safeName}'].places=this.value;updatePreview()"></textarea>
+      </div>
+      <div class="field">
+        <label>📍 Google Maps List <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— shared list link</span></label>
+        <input type="url" placeholder="https://maps.app.goo.gl/..." oninput="cityData['${safeName}'].mapsLink=this.value;updatePreview()">
       </div>
       <div class="field">
         <label>Google Map Screenshot</label>
@@ -685,7 +689,12 @@ async function handleSubmit() {
 
     // Build children blocks for country page
     const children = [];
-    // Note: coverUrl goes into the page cover property, not as a content block
+
+    // Description as the first content block (no name heading - title is already the page title)
+    if (desc) {
+      children.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(desc) } });
+      children.push({ object:'block', type:'divider', divider:{} });
+    }
 
     // Cities — callout header then clickable page links
     if (cityOrder.length) {
@@ -794,6 +803,23 @@ async function handleSubmit() {
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
 
+      // Google Maps list link — bookmark block
+      if (cd.mapsLink && cd.mapsLink.trim()) {
+        cityBlocks.push({
+          object:'block', type:'callout',
+          callout:{
+            rich_text:[{ type:'text', text:{ content:'Google Maps List' }, annotations:{ bold:true } }],
+            icon:{ type:'emoji', emoji:'📍' },
+            color:'green_background'
+          }
+        });
+        cityBlocks.push({
+          object:'block', type:'bookmark',
+          bookmark:{ url: cd.mapsLink.trim() }
+        });
+        cityBlocks.push({ object:'block', type:'divider', divider:{} });
+      }
+
       // Map screenshot
       if (mapUrl) {
         cityBlocks.push({
@@ -885,6 +911,7 @@ function updatePreview() {
       <div class="prev-city-block-name">🏙️ ${city}</div>
       <div class="prev-city-block-desc">${cd.desc ? cd.desc.replace(/\n/g,'<br>') : '<span style="color:var(--muted);font-style:italic">No description yet — click to view</span>'}</div>
       ${places.length?`<div class="prev-places">${places.map(p=>`<span class="prev-place">${p}</span>`).join('')}</div>`:''}
+      ${cd.mapsLink?`<a href="${cd.mapsLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--accent-dim);border:1px solid rgba(2,195,154,0.25);border-radius:5px;padding:3px 10px;margin-top:4px;">📍 Maps List ↗</a>`:''}
       ${galThumbs.length?`<div class="prev-gallery">${galThumbs.slice(0,3).map(s=>`<img src="${s}">`).join('')}</div>`:''}
       <div style="font-size:10px;color:var(--accent);margin-top:8px;opacity:0.7">Tap to preview city →</div>
     </div>`;
