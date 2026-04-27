@@ -780,7 +780,6 @@ async function handleSubmit() {
 
       // Description
       if (cd.desc) {
-        cityBlocks.push({ object:'block', type:'heading_1', heading_1:{ rich_text: richText(city ? city : 'Description'), color:'default' } });
         cityBlocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(cd.desc) } });
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
