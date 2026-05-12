@@ -44,6 +44,8 @@
   .field { margin-bottom: 1.1rem; }
   .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted2); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 5px; }
   .req { color: var(--red); margin-left: 2px; }
+  .flag-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--accent-dim); border: 1px solid rgba(2,195,154,0.25); border-radius: 6px; padding: 4px 10px; margin-top: 6px; color: var(--accent); font-weight: 500; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform: translateY(0); } }
   input[type="text"], input[type="url"], textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 12px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; resize: vertical; }
   input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2,195,154,0.08); }
   textarea { min-height: 80px; line-height: 1.6; }
@@ -101,10 +103,36 @@
   .btn-submit:hover { opacity: 0.85; transform: translateY(-1px); }
   .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+  /* VALIDATOR */
+  .validator-toast { position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 18px; min-width: 280px; max-width: 380px; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+  .validator-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
+  .validator-title { font-size: 12px; font-weight: 600; color: var(--red); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .validator-list { list-style: none; padding: 0; margin: 0; }
+  .validator-list li { font-size: 12px; color: var(--muted2); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  .validator-list li::before { content: '·'; color: var(--red); font-size: 18px; line-height: 1; }
+  .validator-close { float: right; background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; margin-top: -2px; }
+  .validator-close:hover { color: var(--text); }
+
   /* TOAST */
   .toast { position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--accent); color: #000; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 200; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.err { background: var(--red); color: white; }
+
+  /* PROGRESS STEPS */
+  .progress-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .progress-overlay.show { display: flex; }
+  .progress-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 24px 28px; min-width: 300px; max-width: 380px; box-shadow: 0 16px 48px rgba(0,0,0,0.8); }
+  .progress-title { font-family: 'Bebas Neue',sans-serif; font-size: 20px; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 20px; }
+  .progress-steps { display: flex; flex-direction: column; gap: 10px; }
+  .progress-step { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted2); transition: color 0.3s; }
+  .progress-step.active { color: var(--text); }
+  .progress-step.done { color: var(--accent); }
+  .progress-step.error { color: var(--red); }
+  .step-icon { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; transition: all 0.3s; }
+  .progress-step.active .step-icon { border-color: var(--accent); background: var(--accent-dim); animation: pulse 1s ease infinite; }
+  .progress-step.done .step-icon { border-color: var(--accent); background: var(--accent); color: #000; }
+  .progress-step.error .step-icon { border-color: var(--red); background: rgba(231,111,81,0.15); color: var(--red); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(2,195,154,0.4); } 50% { box-shadow: 0 0 0 6px rgba(2,195,154,0); } }
 
   /* PREVIEW */
   .prev-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 8px; text-align: center; padding: 2rem; }
@@ -231,7 +259,8 @@
 
     <div class="field">
       <label>Country Name <span class="req">*</span></label>
-      <input type="text" id="cName" placeholder="e.g. Japan" oninput="updatePreview()">
+      <input type="text" id="cName" placeholder="e.g. Japan" oninput="detectFlag(this.value);updatePreview()">
+      <div id="flagBadge" style="display:none" class="flag-badge"></div>
     </div>
 
     <div class="grid2">
@@ -361,6 +390,21 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- VALIDATOR -->
+<div class="validator-toast" id="validatorToast">
+  <button class="validator-close" onclick="hideValidator()">×</button>
+  <div class="validator-title">⚠ Before you push</div>
+  <ul class="validator-list" id="validatorList"></ul>
+</div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-card">
+    <div class="progress-title">Pushing to Notion</div>
+    <div class="progress-steps" id="progressSteps"></div>
+  </div>
+</div>
+
 <script>
 // ── CONFIG ──
 let COUNTRIES_DB = '', CITIES_DB = '', CLD_CLOUD = '', CLD_PRESET = '';
@@ -403,7 +447,7 @@ document.getElementById('tagInput').addEventListener('keydown', async function(e
     e.preventDefault();
     const name = this.value.trim();
     if (cityData[name]) { this.value = ''; return; }
-    cityData[name] = { pageId: null, desc: '', places: '', mapsLink: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [] };
+    cityData[name] = { pageId: null, desc: '', places: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [] };
     cityOrder.push(name);
     this.value = '';
     renderTag(name, 'creating');
@@ -472,10 +516,6 @@ function renderCityForm(name) {
       <div class="field">
         <label>Places to Visit <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— one per line</span></label>
         <textarea class="short" placeholder="Dotonbori&#10;Castle..." oninput="cityData['${safeName}'].places=this.value;updatePreview()"></textarea>
-      </div>
-      <div class="field">
-        <label>📍 Google Maps List <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— shared list link</span></label>
-        <input type="url" placeholder="https://maps.app.goo.gl/..." oninput="cityData['${safeName}'].mapsLink=this.value;updatePreview()">
       </div>
       <div class="field">
         <label>Google Map Screenshot</label>
@@ -673,28 +713,33 @@ async function autoCreateCityPage(cityName, countryName, coverUrl = '') {
 
 // ── MAIN SUBMIT ──
 async function handleSubmit() {
-  const name = document.getElementById('cName').value.trim();
-  const desc = document.getElementById('cDesc').value.trim();
-  if (!name || !desc) { showToast('Country name and description are required', true); return; }
+  const rawName = document.getElementById('cName').value.trim();
+  const desc    = document.getElementById('cDesc').value.trim();
+
+  // Pre-push validation
+  const errors = validateForm();
+  if (errors.length) { showValidator(errors); return; }
+
+  // Prepend flag emoji to name if detected
+  const name = detectedFlag ? detectedFlag + ' ' + rawName : rawName;
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
-  btn.textContent = 'Uploading cover...';
+
+  // Show progress overlay
+  showProgress();
 
   try {
-    // Upload cover
+    // Step 1: Upload cover
+    setStep('step-cover', 'active');
     let coverUrl = '';
     const coverInput = document.getElementById('coverFile');
     if (coverInput.files.length) coverUrl = await uploadImage(coverInput.files[0]);
+    setStep('step-cover', 'done');
 
     // Build children blocks for country page
     const children = [];
-
-    // Description as the first content block (no name heading - title is already the page title)
-    if (desc) {
-      children.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(desc) } });
-      children.push({ object:'block', type:'divider', divider:{} });
-    }
+    // Note: coverUrl goes into the page cover property, not as a content block
 
     // Cities — callout header then clickable page links
     if (cityOrder.length) {
@@ -738,7 +783,8 @@ async function handleSubmit() {
       });
     });
 
-    btn.textContent = 'Creating country page...';
+    // Step 2: Create country page
+    setStep('step-country', 'active');
 
     const countryPage = await notionPost({
       parent: { database_id: COUNTRIES_DB },
@@ -763,8 +809,9 @@ async function handleSubmit() {
     // Log to push history
     addHistoryEntry(name, cityOrder.length, countryPage?.url || '');
 
-    // Update each city page with filled content
-    btn.textContent = 'Updating city pages...';
+    // Step 3: Update city pages
+    setStep('step-country', 'done');
+    setStep('step-cities', 'active');
 
     for (const city of cityOrder) {
       const cd = cityData[city];
@@ -780,6 +827,7 @@ async function handleSubmit() {
 
       // Description
       if (cd.desc) {
+        cityBlocks.push({ object:'block', type:'heading_1', heading_1:{ rich_text: richText(city ? city : 'Description'), color:'default' } });
         cityBlocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(cd.desc) } });
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
@@ -799,23 +847,6 @@ async function handleSubmit() {
           object:'block', type:'bulleted_list_item',
           bulleted_list_item:{ rich_text:[{ type:'text', text:{ content: p } }] }
         }));
-        cityBlocks.push({ object:'block', type:'divider', divider:{} });
-      }
-
-      // Google Maps list link — bookmark block
-      if (cd.mapsLink && cd.mapsLink.trim()) {
-        cityBlocks.push({
-          object:'block', type:'callout',
-          callout:{
-            rich_text:[{ type:'text', text:{ content:'Google Maps List' }, annotations:{ bold:true } }],
-            icon:{ type:'emoji', emoji:'📍' },
-            color:'green_background'
-          }
-        });
-        cityBlocks.push({
-          object:'block', type:'bookmark',
-          bookmark:{ url: cd.mapsLink.trim() }
-        });
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
 
@@ -860,6 +891,10 @@ async function handleSubmit() {
       if (cityBlocks.length) await notionAppendBlocks(cd.pageId, cityBlocks);
     }
 
+    setStep('step-cities', 'done');
+    setStep('step-done', 'done');
+    setTimeout(hideProgress, 1200);
+
     showToast('✓ ' + name + ' + ' + cityOrder.length + ' ' + (cityOrder.length === 1 ? 'city' : 'cities') + ' pushed!');
     setStatus(true, 'Connected to Notion');
 
@@ -868,6 +903,11 @@ async function handleSubmit() {
 
   } catch(err) {
     console.error(err);
+    PUSH_STEPS.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (el && el.classList.contains('active')) setStep(s.id, 'error');
+    });
+    setTimeout(hideProgress, 2000);
     showToast('Error: ' + err.message, true);
   }
 
@@ -910,7 +950,6 @@ function updatePreview() {
       <div class="prev-city-block-name">🏙️ ${city}</div>
       <div class="prev-city-block-desc">${cd.desc ? cd.desc.replace(/\n/g,'<br>') : '<span style="color:var(--muted);font-style:italic">No description yet — click to view</span>'}</div>
       ${places.length?`<div class="prev-places">${places.map(p=>`<span class="prev-place">${p}</span>`).join('')}</div>`:''}
-      ${cd.mapsLink?`<a href="${cd.mapsLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--accent-dim);border:1px solid rgba(2,195,154,0.25);border-radius:5px;padding:3px 10px;margin-top:4px;">📍 Maps List ↗</a>`:''}
       ${galThumbs.length?`<div class="prev-gallery">${galThumbs.slice(0,3).map(s=>`<img src="${s}">`).join('')}</div>`:''}
       <div style="font-size:10px;color:var(--accent);margin-top:8px;opacity:0.7">Tap to preview city →</div>
     </div>`;
@@ -1050,6 +1089,8 @@ function resetForm() {
   document.getElementById('coverFile').value = '';
   document.getElementById('cStatus').value = '';
   document.getElementById('cCurrency').value = 'USD';
+  detectedFlag = '';
+  document.getElementById('flagBadge').style.display = 'none';
   document.getElementById('coverPrev').innerHTML = '';
 
   // Remove all city tags, forms, and state
@@ -1214,6 +1255,143 @@ document.addEventListener('click', e => {
 
 // Init history on load
 renderHistory();
+
+
+// ── FLAG AUTO-DETECT ──
+const FLAG_MAP = {
+  'afghanistan':'🇦🇫','albania':'🇦🇱','algeria':'🇩🇿','andorra':'🇦🇩','angola':'🇦🇴',
+  'argentina':'🇦🇷','armenia':'🇦🇲','australia':'🇦🇺','austria':'🇦🇹','azerbaijan':'🇦🇿',
+  'bahamas':'🇧🇸','bahrain':'🇧🇭','bangladesh':'🇧🇩','barbados':'🇧🇧','belarus':'🇧🇾',
+  'belgium':'🇧🇪','belize':'🇧🇿','benin':'🇧🇯','bhutan':'🇧🇹','bolivia':'🇧🇴',
+  'bosnia':'🇧🇦','botswana':'🇧🇼','brazil':'🇧🇷','brunei':'🇧🇳','bulgaria':'🇧🇬',
+  'burkina faso':'🇧🇫','burundi':'🇧🇮','cambodia':'🇰🇭','cameroon':'🇨🇲','canada':'🇨🇦',
+  'cape verde':'🇨🇻','chad':'🇹🇩','chile':'🇨🇱','china':'🇨🇳','colombia':'🇨🇴',
+  'comoros':'🇰🇲','congo':'🇨🇬','costa rica':'🇨🇷','croatia':'🇭🇷','cuba':'🇨🇺',
+  'cyprus':'🇨🇾','czech':'🇨🇿','denmark':'🇩🇰','djibouti':'🇩🇯','dominican':'🇩🇴',
+  'ecuador':'🇪🇨','egypt':'🇪🇬','el salvador':'🇸🇻','eritrea':'🇪🇷','estonia':'🇪🇪',
+  'eswatini':'🇸🇿','ethiopia':'🇪🇹','fiji':'🇫🇯','finland':'🇫🇮','france':'🇫🇷',
+  'gabon':'🇬🇦','gambia':'🇬🇲','georgia':'🇬🇪','germany':'🇩🇪','ghana':'🇬🇭',
+  'greece':'🇬🇷','grenada':'🇬🇩','guatemala':'🇬🇹','guinea':'🇬🇳','guyana':'🇬🇾',
+  'haiti':'🇭🇹','honduras':'🇭🇳','hungary':'🇭🇺','iceland':'🇮🇸','india':'🇮🇳',
+  'indonesia':'🇮🇩','iran':'🇮🇷','iraq':'🇮🇶','ireland':'🇮🇪','israel':'🇮🇱',
+  'italy':'🇮🇹','jamaica':'🇯🇲','japan':'🇯🇵','jordan':'🇯🇴','kazakhstan':'🇰🇿',
+  'kenya':'🇰🇪','kiribati':'🇰🇮','kosovo':'🇽🇰','kuwait':'🇰🇼','kyrgyzstan':'🇰🇬',
+  'laos':'🇱🇦','latvia':'🇱🇻','lebanon':'🇱🇧','lesotho':'🇱🇸','liberia':'🇱🇷',
+  'libya':'🇱🇾','liechtenstein':'🇱🇮','lithuania':'🇱🇹','luxembourg':'🇱🇺','madagascar':'🇲🇬',
+  'malawi':'🇲🇼','malaysia':'🇲🇾','maldives':'🇲🇻','mali':'🇲🇱','malta':'🇲🇹',
+  'mauritania':'🇲🇷','mauritius':'🇲🇺','mexico':'🇲🇽','moldova':'🇲🇩','monaco':'🇲🇨',
+  'mongolia':'🇲🇳','montenegro':'🇲🇪','morocco':'🇲🇦','mozambique':'🇲🇿','myanmar':'🇲🇲',
+  'namibia':'🇳🇦','nepal':'🇳🇵','netherlands':'🇳🇱','new zealand':'🇳🇿','nicaragua':'🇳🇮',
+  'niger':'🇳🇪','nigeria':'🇳🇬','north korea':'🇰🇵','north macedonia':'🇲🇰','norway':'🇳🇴',
+  'oman':'🇴🇲','pakistan':'🇵🇰','palau':'🇵🇼','panama':'🇵🇦','papua new guinea':'🇵🇬',
+  'paraguay':'🇵🇾','peru':'🇵🇪','philippines':'🇵🇭','poland':'🇵🇱','portugal':'🇵🇹',
+  'qatar':'🇶🇦','romania':'🇷🇴','russia':'🇷🇺','rwanda':'🇷🇼','samoa':'🇼🇸',
+  'san marino':'🇸🇲','saudi arabia':'🇸🇦','senegal':'🇸🇳','serbia':'🇷🇸','seychelles':'🇸🇨',
+  'sierra leone':'🇸🇱','singapore':'🇸🇬','slovakia':'🇸🇰','slovenia':'🇸🇮','somalia':'🇸🇴',
+  'south africa':'🇿🇦','south korea':'🇰🇷','south sudan':'🇸🇸','spain':'🇪🇸','sri lanka':'🇱🇰',
+  'sudan':'🇸🇩','suriname':'🇸🇷','sweden':'🇸🇪','switzerland':'🇨🇭','syria':'🇸🇾',
+  'taiwan':'🇹🇼','tajikistan':'🇹🇯','tanzania':'🇹🇿','thailand':'🇹🇭','timor':'🇹🇱',
+  'togo':'🇹🇬','tonga':'🇹🇴','trinidad':'🇹🇹','tunisia':'🇹🇳','turkey':'🇹🇷',
+  'turkmenistan':'🇹🇲','tuvalu':'🇹🇻','uganda':'🇺🇬','ukraine':'🇺🇦','uae':'🇦🇪',
+  'united arab emirates':'🇦🇪','united kingdom':'🇬🇧','uk':'🇬🇧','united states':'🇺🇸',
+  'usa':'🇺🇸','america':'🇺🇸','uruguay':'🇺🇾','uzbekistan':'🇺🇿','vanuatu':'🇻🇺',
+  'venezuela':'🇻🇪','vietnam':'🇻🇳','yemen':'🇾🇪','zambia':'🇿🇲','zimbabwe':'🇿🇼',
+};
+
+let detectedFlag = '';
+
+function detectFlag(val) {
+  const key = val.trim().toLowerCase();
+  const badge = document.getElementById('flagBadge');
+  let found = FLAG_MAP[key];
+  // Partial match for longer names (e.g. "United States of America")
+  if (!found) {
+    for (const [country, flag] of Object.entries(FLAG_MAP)) {
+      if (key.includes(country) || country.includes(key) && key.length > 3) {
+        found = flag; break;
+      }
+    }
+  }
+  if (found) {
+    detectedFlag = found;
+    badge.style.display = 'inline-flex';
+    badge.textContent = found + '  ' + val.trim();
+  } else {
+    detectedFlag = '';
+    badge.style.display = 'none';
+  }
+}
+
+// ── PRE-PUSH VALIDATOR ──
+function validateForm() {
+  const errors = [];
+  const name = document.getElementById('cName').value.trim();
+  const desc = document.getElementById('cDesc').value.trim();
+
+  if (!name) errors.push('Country name is required');
+  if (!desc) errors.push('Description is required');
+
+  // Warn if cities were added but none have descriptions
+  const citiesWithContent = cityOrder.filter(c => cityData[c]?.desc?.trim());
+  if (cityOrder.length > 0 && citiesWithContent.length === 0) {
+    errors.push('Cities added but none have descriptions — they will push empty');
+  }
+
+  // Warn if no sections filled
+  const anySectionFilled = ['cClothing','cSim','cLogistics','cLodging','cShopping','cFood','cLaundry','cPayments']
+    .some(id => document.getElementById(id)?.value.trim());
+  if (!anySectionFilled) {
+    errors.push('No travel essentials filled in (Clothing, Food, SIM etc.)');
+  }
+
+  return errors;
+}
+
+function showValidator(errors) {
+  const el   = document.getElementById('validatorToast');
+  const list = document.getElementById('validatorList');
+  list.innerHTML = errors.map(e => `<li>${e}</li>`).join('');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+function hideValidator() {
+  document.getElementById('validatorToast').classList.remove('show');
+}
+
+// ── PROGRESS STEPS ──
+const PUSH_STEPS = [
+  { id:'step-cover',   label:'Uploading cover photo' },
+  { id:'step-country', label:'Creating country page' },
+  { id:'step-cities',  label:'Updating city pages' },
+  { id:'step-done',    label:'All done!' },
+];
+
+function showProgress() {
+  const overlay = document.getElementById('progressOverlay');
+  const steps   = document.getElementById('progressSteps');
+  steps.innerHTML = PUSH_STEPS.map(s =>
+    `<div class="progress-step" id="${s.id}">
+      <div class="step-icon">○</div>
+      <span>${s.label}</span>
+    </div>`
+  ).join('');
+  overlay.classList.add('show');
+}
+
+function setStep(id, state) {
+  const el   = document.getElementById(id);
+  if (!el) return;
+  el.className = 'progress-step ' + state;
+  const icon = el.querySelector('.step-icon');
+  if (state === 'active') icon.textContent = '◎';
+  if (state === 'done')   icon.textContent = '✓';
+  if (state === 'error')  icon.textContent = '✕';
+}
+
+function hideProgress() {
+  document.getElementById('progressOverlay').classList.remove('show');
+}
 
 // ── UTILS ──
 function setStatus(on, text) {
