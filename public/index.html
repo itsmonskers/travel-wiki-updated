@@ -1048,7 +1048,7 @@ function updatePreview() {
   const currencyVal= document.getElementById('cCurrency')?.value || 'USD';
 
   // City links are clickable to open city detail view
-  const cityLinksHtml = cityOrder.map(c=>`<div class="prev-city-link clickable" onclick="openCityDetail('${c.replace(/'/g,"\\'")}')">🏙️ ${c}</div>`).join('');
+  const cityLinksHtml = cityOrder.map(c=>`<div class="prev-city-link clickable" onclick="openCityDetail(this.dataset.city)" data-city="${c}">🏙️ ${c}</div>`).join('');
 
   const cardsHtml = SECTIONS.map(s => {
     const val = document.getElementById(s.id)?.value.trim();
@@ -1605,7 +1605,7 @@ function renderEditList(pages) {
     const status = p.properties?.['Travel Status']?.select?.name || '';
     const budget = p.properties?.['Budget']?.rich_text?.[0]?.plain_text || '';
     const statusEmoji = status === 'Visited' ? '✅' : status === 'Planning' ? '📅' : status === 'Dreaming' ? '✨' : '';
-    return `<div class="modal-item" onclick="loadCountryIntoForm('${p.id}', ${JSON.stringify(name).replace(/"/g,"'")})">
+    return `<div class="modal-item" onclick="loadCountryIntoForm(this.dataset.id, this.dataset.name)" data-id="${p.id}" data-name="${name}">
       <div>
         <div class="modal-item-name">${name}</div>
         <div class="modal-item-meta">${statusEmoji ? statusEmoji + ' ' + status : 'No status'}${budget ? ' · ' + budget : ''}</div>
@@ -1679,10 +1679,9 @@ async function loadCountryIntoForm(pageId, pageName) {
         const texts = block.callout?.rich_text || [];
         if (iconMap[icon]) {
           // Get text after the bold label (second text segment)
-          const content = texts.filter(t => !t.annotations?.bold).map(t => t.plain_text).join('').trim()
-                       || texts.map(t => t.plain_text).join('').replace(/^[^
-]+
-/, '').trim();
+          const allText = texts.map(t => t.plain_text).join('');
+          const boldText = texts.filter(t => t.annotations?.bold).map(t => t.plain_text).join('');
+          const content = allText.replace(boldText, '').trim() || allText.trim();
           if (content) document.getElementById(iconMap[icon]).value = content;
         }
       }
