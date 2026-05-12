@@ -14,7 +14,6 @@ exports.handler = async (event) => {
   };
 
   const method = event.httpMethod;
-  // Strip leading /.netlify/functions/notion or /api/notion
   const path = event.path.replace(/^\/.netlify\/functions\/notion/, '').replace(/^\/api\/notion/, '') || '/';
 
   try {
@@ -25,10 +24,18 @@ exports.handler = async (event) => {
       return { statusCode: res.status, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
     }
 
-    // PATCH /pages/:id — update page (cover etc)
+    // PATCH /pages/:id — update page
     if (method === 'PATCH' && path.startsWith('/pages/')) {
       const pageId = path.split('/')[2];
       const res = await fetch(`${NOTION_API}/pages/${pageId}`, { method: 'PATCH', headers, body: event.body });
+      const data = await res.json();
+      return { statusCode: res.status, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+    }
+
+    // POST /databases/:id/query — query a database (stats + edit existing)
+    if (method === 'POST' && path.startsWith('/databases/') && path.endsWith('/query')) {
+      const dbId = path.split('/')[2];
+      const res = await fetch(`${NOTION_API}/databases/${dbId}/query`, { method: 'POST', headers, body: event.body || '{}' });
       const data = await res.json();
       return { statusCode: res.status, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
     }
