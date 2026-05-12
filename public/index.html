@@ -22,6 +22,27 @@
     --gold: #F4A261;
     --white: #fff;
   }
+  body.light {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --surface2: #f0f0ec;
+    --surface3: #e8e8e4;
+    --border: #ddd;
+    --border2: #ccc;
+    --text: #111;
+    --muted: #bbb;
+    --muted2: #777;
+    --accent: #02A882;
+    --accent-dim: rgba(2,168,130,0.10);
+    --white: #111;
+  }
+  body.light .prev-cover-overlay { background: linear-gradient(to top,rgba(0,0,0,.45),transparent); }
+  body.light .city-detail-view { background: #f5f5f0; }
+  body.light .city-detail-back { background: #f5f5f0; }
+  body.light .preview-panel { background: #eeede8; }
+  body.light .prev-country-name { color: #111; }
+  body.light .prev-desc { color: #444; }
+  * { transition: background-color 0.2s, border-color 0.2s, color 0.15s; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -34,7 +55,7 @@
   .dot.on { background: var(--accent); }
 
   /* LAYOUT */
-  .workspace { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 56px); }
+  .workspace { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 56px - 36px); }
   .form-panel { overflow-y: auto; border-right: 1px solid var(--border); padding: 2rem 2rem 5rem; }
   .preview-panel { overflow-y: auto; background: #0d0d0d; }
 
@@ -161,6 +182,8 @@
   .prev-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; }
 
   .preview-toggle { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted2); font-family: 'DM Sans',sans-serif; font-size: 12px; font-weight: 500; padding: 5px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; letter-spacing: 0.02em; }
+  .theme-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted2); font-family: 'DM Sans',sans-serif; font-size: 12px; font-weight: 500; padding: 5px 10px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+  .theme-btn:hover { border-color: var(--accent); color: var(--accent); }
   .preview-toggle:hover, .preview-toggle.active { border-color: var(--accent); color: var(--accent); }
 
   /* STATUS SELECT */
@@ -199,6 +222,36 @@
   .history-notion-link { font-size: 11px; color: var(--accent); text-decoration: none; white-space: nowrap; flex-shrink: 0; }
   .history-notion-link:hover { text-decoration: underline; }
 
+  /* STATS BAR */
+  .stats-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 36px; display: flex; align-items: center; gap: 24px; }
+  .stat-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted2); }
+  .stat-value { font-weight: 700; color: var(--text); font-size: 13px; }
+  .stat-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border2); }
+  .stat-loading { animation: statpulse 1.2s ease infinite; }
+  @keyframes statpulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* EDIT MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 400; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.show { display: flex; }
+  .modal-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 24px; width: 480px; max-width: 95vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 16px 48px rgba(0,0,0,0.8); }
+  .modal-title { font-family: 'Bebas Neue',sans-serif; font-size: 22px; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--muted2); margin-bottom: 18px; }
+  .modal-search { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans',sans-serif; font-size: 13px; padding: 9px 12px; outline: none; margin-bottom: 12px; }
+  .modal-search:focus { border-color: var(--accent); }
+  .modal-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+  .modal-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .modal-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .modal-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .modal-item-meta { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+  .modal-item-arrow { font-size: 14px; color: var(--muted2); }
+  .modal-empty { text-align: center; padding: 24px; font-size: 13px; color: var(--muted2); }
+  .modal-close { float: right; background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
+  .modal-close:hover { color: var(--text); }
+  .edit-mode-bar { background: rgba(244,162,97,0.12); border: 1px solid rgba(244,162,97,0.3); border-radius: 8px; padding: 8px 14px; margin-bottom: 1rem; display: none; align-items: center; justify-content: space-between; font-size: 12px; color: var(--gold); }
+  .edit-mode-bar.show { display: flex; }
+  .edit-mode-cancel { background: none; border: 1px solid rgba(244,162,97,0.4); border-radius: 5px; color: var(--gold); font-family: 'DM Sans',sans-serif; font-size: 11px; padding: 3px 10px; cursor: pointer; }
+  .edit-mode-cancel:hover { background: rgba(244,162,97,0.15); }
+
   /* CITY DETAIL PREVIEW */
   .city-detail-view { display: none; position: absolute; inset: 0; background: #0d0d0d; overflow-y: auto; z-index: 10; }
   .city-detail-view.active { display: block; }
@@ -229,6 +282,8 @@
     <button class="preview-toggle" id="previewToggle" onclick="togglePreview()" title="Toggle preview">
       <span id="toggleIcon">◫</span> Preview
     </button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+    <button class="history-btn" onclick="openEditModal()" title="Load existing country" style="gap:5px">✏️ Edit Existing</button>
     <div style="position:relative">
       <button class="history-btn" id="historyBtn" onclick="toggleHistory()" title="Push history">
         🕘 History <span class="history-badge" id="historyBadge" style="display:none">0</span>
@@ -250,10 +305,29 @@
   </div>
 </header>
 
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-item"><span class="stat-value stat-loading" id="statCountries">—</span><span>countries</span></div>
+  <div class="stat-dot"></div>
+  <div class="stat-item"><span class="stat-value stat-loading" id="statCities">—</span><span>cities</span></div>
+  <div class="stat-dot"></div>
+  <div class="stat-item"><span class="stat-value stat-loading" id="statVisited">—</span><span>visited</span></div>
+  <div class="stat-dot"></div>
+  <div class="stat-item"><span class="stat-value stat-loading" id="statPlanning">—</span><span>planning</span></div>
+  <div class="stat-dot"></div>
+  <div class="stat-item"><span class="stat-value stat-loading" id="statDreaming">—</span><span>dreaming</span></div>
+</div>
+
 <div class="workspace">
 
   <!-- FORM PANEL -->
   <div class="form-panel">
+
+    <!-- EDIT MODE BAR -->
+    <div class="edit-mode-bar" id="editModeBar">
+      <span>✏️ Editing: <strong id="editingCountryName">—</strong> — changes will update the existing Notion page</span>
+      <button class="edit-mode-cancel" onclick="cancelEditMode()">✕ Cancel Edit</button>
+    </div>
 
     <div class="section-label">Country</div>
 
@@ -390,6 +464,19 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- EDIT EXISTING MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeEditModal()">×</button>
+    <div class="modal-title">Load Existing Country</div>
+    <div class="modal-sub">Select a country to load its content back into the form for editing</div>
+    <input class="modal-search" id="editSearch" type="text" placeholder="Search countries..." oninput="filterEditList()">
+    <div class="modal-list" id="editList">
+      <div class="modal-empty">Loading countries from Notion...</div>
+    </div>
+  </div>
+</div>
+
 <!-- VALIDATOR -->
 <div class="validator-toast" id="validatorToast">
   <button class="validator-close" onclick="hideValidator()">×</button>
@@ -418,6 +505,7 @@ async function loadConfig() {
     CLD_CLOUD    = cfg.cloudinaryCloud;
     CLD_PRESET   = cfg.cloudinaryPreset;
     setStatus(true, 'Connected to Notion');
+    loadStats();
   } catch(e) {
     setStatus(false, 'Config unavailable');
     showToast('Check Netlify environment variables are set', true);
@@ -783,10 +871,38 @@ async function handleSubmit() {
       });
     });
 
-    // Step 2: Create country page
+    // Step 2: Create or update country page
     setStep('step-country', 'active');
 
-    const countryPage = await notionPost({
+    let countryPage;
+    if (editingPageId) {
+      // UPDATE mode — patch properties and clear+rewrite blocks
+      countryPage = await notionPatch(editingPageId, {
+        cover: coverUrl ? { type: 'external', external: { url: coverUrl } } : undefined,
+        properties: {
+          Name:                    { title: richText(name) },
+          'Description of Country':{ rich_text: richText(desc) },
+          Clothing:                { rich_text: richText(document.getElementById('cClothing').value.trim()) },
+          'Sim Card':              { rich_text: richText(document.getElementById('cSim').value.trim()) },
+          Logistics:               { rich_text: richText(document.getElementById('cLogistics').value.trim()) },
+          Lodging:                 { rich_text: richText(document.getElementById('cLodging').value.trim()) },
+          Shopping:                { rich_text: richText(document.getElementById('cShopping').value.trim()) },
+          Food:                    { rich_text: richText(document.getElementById('cFood').value.trim()) },
+          Laundry:                 { rich_text: richText(document.getElementById('cLaundry').value.trim()) },
+          Payments:                { rich_text: richText(document.getElementById('cPayments').value.trim()) },
+          'Travel Status':         { select: document.getElementById('cStatus').value ? { name: document.getElementById('cStatus').value } : undefined },
+          'Budget':                { rich_text: richText(document.getElementById('cBudget').value.trim() ? document.getElementById('cCurrency').value + ' ' + document.getElementById('cBudget').value.trim() : '') }
+        }
+      });
+      await clearPageBlocks(editingPageId);
+      if (children.length) await notionAppendBlocks(editingPageId, children);
+      // Reset edit mode
+      editingPageId = null;
+      document.getElementById('editModeBar').classList.remove('show');
+      document.getElementById('submitBtn').textContent = 'Push to Notion ↗';
+    } else {
+      // CREATE mode — make new page
+      countryPage = await notionPost({
       parent: { database_id: COUNTRIES_DB },
       cover: coverUrl ? { type: 'external', external: { url: coverUrl } } : undefined,
       properties: {
@@ -804,7 +920,8 @@ async function handleSubmit() {
         'Budget':                { rich_text: richText(document.getElementById('cBudget').value.trim() ? document.getElementById('cCurrency').value + ' ' + document.getElementById('cBudget').value.trim() : '') }
       },
       children
-    });
+      });
+    } // end create/update branch
 
     // Log to push history
     addHistoryEntry(name, cityOrder.length, countryPage?.url || '');
@@ -899,7 +1016,7 @@ async function handleSubmit() {
     setStatus(true, 'Connected to Notion');
 
     // Auto-reset after a short delay so user can read the toast
-    setTimeout(resetForm, 2000);
+    setTimeout(() => { resetForm(); loadStats(); }, 2000);
 
   } catch(err) {
     console.error(err);
@@ -1091,6 +1208,9 @@ function resetForm() {
   document.getElementById('cCurrency').value = 'USD';
   detectedFlag = '';
   document.getElementById('flagBadge').style.display = 'none';
+  editingPageId = null;
+  document.getElementById('editModeBar').classList.remove('show');
+  document.getElementById('submitBtn').textContent = 'Push to Notion ↗';
   document.getElementById('coverPrev').innerHTML = '';
 
   // Remove all city tags, forms, and state
@@ -1391,6 +1511,206 @@ function setStep(id, state) {
 
 function hideProgress() {
   document.getElementById('progressOverlay').classList.remove('show');
+}
+
+
+// ── LIGHT / DARK THEME ──
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = isLight ? '🌑' : '🌙';
+  try { localStorage.setItem('tw_theme', isLight ? 'light' : 'dark'); } catch(e) {}
+}
+(function initTheme() {
+  try {
+    if (localStorage.getItem('tw_theme') === 'light') {
+      document.body.classList.add('light');
+      document.getElementById('themeBtn').textContent = '🌑';
+    }
+  } catch(e) {}
+})();
+
+// ── LIVE STATS FROM NOTION ──
+async function notionQuery(dbId, body = {}) {
+  const res = await fetch(`/api/notion/databases/${dbId}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function loadStats() {
+  try {
+    const [countries, cities] = await Promise.all([
+      notionQuery(COUNTRIES_DB, { page_size: 100 }),
+      notionQuery(CITIES_DB,    { page_size: 100 })
+    ]);
+
+    const pages = countries.results || [];
+    const visited  = pages.filter(p => p.properties?.['Travel Status']?.select?.name === 'Visited').length;
+    const planning = pages.filter(p => p.properties?.['Travel Status']?.select?.name === 'Planning').length;
+    const dreaming = pages.filter(p => p.properties?.['Travel Status']?.select?.name === 'Dreaming').length;
+
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = val; el.classList.remove('stat-loading'); }
+    };
+    set('statCountries', pages.length);
+    set('statCities',    (cities.results || []).length);
+    set('statVisited',   visited);
+    set('statPlanning',  planning);
+    set('statDreaming',  dreaming);
+  } catch(e) {
+    console.warn('Stats load failed:', e);
+  }
+}
+
+// ── EDIT EXISTING PAGES ──
+let allCountryPages  = [];
+let editingPageId    = null;
+let editingPageBlocks = [];
+
+async function openEditModal() {
+  document.getElementById('editModal').classList.add('show');
+  document.getElementById('editList').innerHTML = '<div class="modal-empty">Loading countries from Notion...</div>';
+  document.getElementById('editSearch').value = '';
+
+  try {
+    const data = await notionQuery(COUNTRIES_DB, { page_size: 100, sorts: [{ property: 'Name', direction: 'ascending' }] });
+    allCountryPages = (data.results || []).filter(p => !p.archived);
+    renderEditList(allCountryPages);
+  } catch(e) {
+    document.getElementById('editList').innerHTML = '<div class="modal-empty">Could not load countries — check your connection</div>';
+  }
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('show');
+}
+
+function filterEditList() {
+  const q = document.getElementById('editSearch').value.toLowerCase();
+  const filtered = allCountryPages.filter(p => {
+    const name = p.properties?.Name?.title?.[0]?.plain_text || '';
+    return name.toLowerCase().includes(q);
+  });
+  renderEditList(filtered);
+}
+
+function renderEditList(pages) {
+  const list = document.getElementById('editList');
+  if (!pages.length) { list.innerHTML = '<div class="modal-empty">No countries found</div>'; return; }
+  list.innerHTML = pages.map(p => {
+    const name   = p.properties?.Name?.title?.[0]?.plain_text || 'Untitled';
+    const status = p.properties?.['Travel Status']?.select?.name || '';
+    const budget = p.properties?.['Budget']?.rich_text?.[0]?.plain_text || '';
+    const statusEmoji = status === 'Visited' ? '✅' : status === 'Planning' ? '📅' : status === 'Dreaming' ? '✨' : '';
+    return `<div class="modal-item" onclick="loadCountryIntoForm('${p.id}', ${JSON.stringify(name).replace(/"/g,"'")})">
+      <div>
+        <div class="modal-item-name">${name}</div>
+        <div class="modal-item-meta">${statusEmoji ? statusEmoji + ' ' + status : 'No status'}${budget ? ' · ' + budget : ''}</div>
+      </div>
+      <span class="modal-item-arrow">→</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadCountryIntoForm(pageId, pageName) {
+  closeEditModal();
+  showToast('Loading ' + pageName + '...', false);
+
+  try {
+    // Fetch page blocks to read content back
+    const blocksRes = await fetch(`/api/notion/blocks/${pageId}/children`, { headers: { 'Content-Type': 'application/json' } });
+    const blocksData = await blocksRes.json();
+    const blocks = blocksData.results || [];
+
+    // Find the page in allCountryPages for properties
+    const page = allCountryPages.find(p => p.id === pageId);
+    if (!page) throw new Error('Page not found');
+
+    // ── Clear form first ──
+    resetForm();
+
+    // ── Fill properties ──
+    const props = page.properties || {};
+    const rawName = props?.Name?.title?.[0]?.plain_text || '';
+    document.getElementById('cName').value = rawName;
+    detectFlag(rawName);
+
+    const status = props?.['Travel Status']?.select?.name || '';
+    document.getElementById('cStatus').value = status;
+
+    const budgetRaw = props?.['Budget']?.rich_text?.[0]?.plain_text || '';
+    if (budgetRaw) {
+      const parts = budgetRaw.split(' ');
+      if (parts.length >= 2) {
+        const currency = parts[0];
+        const amount = parts.slice(1).join(' ');
+        const currencyEl = document.getElementById('cCurrency');
+        if ([...currencyEl.options].some(o => o.value === currency)) currencyEl.value = currency;
+        document.getElementById('cBudget').value = amount;
+      }
+    }
+
+    // Fill text properties
+    const propMap = {
+      'Description of Country': 'cDesc',
+      'Clothing':  'cClothing',
+      'Sim Card':  'cSim',
+      'Logistics': 'cLogistics',
+      'Lodging':   'cLodging',
+      'Shopping':  'cShopping',
+      'Food':      'cFood',
+      'Laundry':   'cLaundry',
+      'Payments':  'cPayments',
+    };
+    for (const [prop, elId] of Object.entries(propMap)) {
+      const val = props?.[prop]?.rich_text?.[0]?.plain_text || '';
+      if (val) document.getElementById(elId).value = val;
+    }
+
+    // ── Also try reading callout blocks for richer content ──
+    // Map icon emoji → field id
+    const iconMap = { '👕':'cClothing','📱':'cSim','🚌':'cLogistics','🏨':'cLodging','🛍️':'cShopping','🍜':'cFood','👗':'cLaundry','💳':'cPayments' };
+    blocks.forEach(block => {
+      if (block.type === 'callout') {
+        const icon = block.callout?.icon?.emoji || '';
+        const texts = block.callout?.rich_text || [];
+        if (iconMap[icon]) {
+          // Get text after the bold label (second text segment)
+          const content = texts.filter(t => !t.annotations?.bold).map(t => t.plain_text).join('').trim()
+                       || texts.map(t => t.plain_text).join('').replace(/^[^
+]+
+/, '').trim();
+          if (content) document.getElementById(iconMap[icon]).value = content;
+        }
+      }
+      if (block.type === 'paragraph' && !document.getElementById('cDesc').value) {
+        const text = block.paragraph?.rich_text?.map(t => t.plain_text).join('') || '';
+        if (text) document.getElementById('cDesc').value = text;
+      }
+    });
+
+    // ── Set edit mode ──
+    editingPageId = pageId;
+    document.getElementById('editModeBar').classList.add('show');
+    document.getElementById('editingCountryName').textContent = rawName;
+    document.getElementById('submitBtn').textContent = 'Update in Notion ↗';
+
+    updatePreview();
+    showToast('✓ ' + rawName + ' loaded — make your edits and push', false);
+
+  } catch(e) {
+    showToast('Failed to load: ' + e.message, true);
+  }
+}
+
+function cancelEditMode() {
+  editingPageId = null;
+  document.getElementById('editModeBar').classList.remove('show');
+  document.getElementById('submitBtn').textContent = 'Push to Notion ↗';
+  resetForm();
 }
 
 // ── UTILS ──
