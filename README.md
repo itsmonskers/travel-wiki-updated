@@ -1,4 +1,4 @@
-# Carlo's Travel Wiki — Netlify Deployment Guide
+# Travel Wiki — Netlify Deployment Guide
 
 ## How it works (security model)
 
@@ -50,10 +50,10 @@ This is the key step. Do this **before** your site goes live.
 | Key | Value |
 |-----|-------|
 | `NOTION_TOKEN` | your Notion internal integration secret |
-| `COUNTRIES_DB` | `33f7101363f98099a1e4ce2c5d38bc85` |
-| `CITIES_DB` | `33f7101363f98035a23ffd7d5095b9d6` |
-| `CLOUDINARY_CLOUD` | `dd7lauj1a` |
-| `CLOUDINARY_PRESET` | `Travel Guide Carlo` |
+| `COUNTRIES_DB` | your country database |
+| `CITIES_DB` | your city database |
+| `CLOUDINARY_CLOUD` | your cloudinary cloud |
+| `CLOUDINARY_PRESET` | your cloudinary preset |
 
 4. After adding all 5, click **"Trigger deploy"** → **"Deploy site"**
 
