@@ -569,13 +569,13 @@ function renderTag(name, state) {
   const badge = state === 'creating' ? `<span class="spin">⟳</span>`
               : state === 'done'     ? `<span class="check">✓</span>`
               :                        `<span style="color:var(--red);font-size:10px">!</span>`;
-  const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeName = name.replace(/'/g, "\\'");
   tag.innerHTML = `<span style="cursor:pointer" onclick="focusCity('${safeName}')">${name} ${badge}</span> <button onclick="removeCity('${safeName}')">×</button>`;
   wrap.insertBefore(tag, input);
 }
 
 function renderCityForm(name) {
-  const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeName = name.replace(/'/g, "\\'");
   const slug = name.replace(/[^a-zA-Z0-9]/g, '_');
   const block = document.createElement('div');
   block.className = 'city-form-block';
@@ -683,7 +683,7 @@ function updateCityUrls(name, slug) {
 }
 
 function addUrlRow(name, slug) {
-  const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeName = name.replace(/'/g, "\\'");
   const row = document.createElement('div');
   row.className = 'url-row';
   row.innerHTML = `<input type="url" placeholder="https://..." oninput="updateCityUrls('${safeName}','${slug}')"><button class="btn-remove" onclick="removeUrlRow(this,'${safeName}','${slug}')">×</button>`;
