@@ -515,7 +515,7 @@ async function loadConfig() {
 loadConfig();
 
 // ── STATE ──
-const cityData  = {}; // name -> { pageId, desc, places, mapFiles, galFiles, galUrls }
+const cityData  = {}; // name -> { pageId, desc, places, coverFiles, mapFiles, galFiles, galUrls }
 const cityOrder = [];
 
 const SECTIONS = [
@@ -673,7 +673,7 @@ function cityFileChange(e, name, type, prevId) {
   if (type === 'cover') cityData[name].coverFiles = files;
   else if (type === 'map') cityData[name].mapFiles = files;
   else cityData[name].galFiles = files;
-  previewFile(e, prevId, type === 'map' ? 'single' : 'multi');
+  previewFile(e, prevId, (type === 'map' || type === 'cover') ? 'single' : 'multi');
   updatePreview();
 }
 
@@ -729,12 +729,16 @@ function onDrop(e, inputId, prevId, mode) {
 
 // ── CLOUDINARY ──
 async function uploadImage(file) {
+  if (!CLD_CLOUD || !CLD_PRESET) {
+    throw new Error('Cloudinary not configured — check CLOUDINARY_CLOUD and CLOUDINARY_PRESET env vars on your server');
+  }
   const fd = new FormData();
   fd.append('file', file);
   fd.append('upload_preset', CLD_PRESET);
   const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`, { method:'POST', body:fd });
   const data = await res.json();
-  if (!data.secure_url) throw new Error('Cloudinary upload failed');
+  if (data.error) throw new Error('Cloudinary: ' + data.error.message);
+  if (!data.secure_url) throw new Error('Cloudinary upload failed — no URL returned');
   return data.secure_url;
 }
 
@@ -822,7 +826,10 @@ async function handleSubmit() {
     setStep('step-cover', 'active');
     let coverUrl = '';
     const coverInput = document.getElementById('coverFile');
-    if (coverInput.files.length) coverUrl = await uploadImage(coverInput.files[0]);
+    if (coverInput.files.length) {
+      try { coverUrl = await uploadImage(coverInput.files[0]); }
+      catch(e) { console.warn('Cover upload failed:', e.message); }
+    }
     setStep('step-cover', 'done');
 
     // Build children blocks for country page
@@ -934,11 +941,20 @@ async function handleSubmit() {
       const cd = cityData[city];
       if (!cd.pageId) continue;
 
-      const cityCoverUrl = cd.coverFiles.length ? await uploadImage(cd.coverFiles[0]) : '';
-      const mapUrl  = cd.mapFiles.length ? await uploadImage(cd.mapFiles[0]) : '';
+      // Safe per-image upload — a failed image won't abort the whole city push
+      async function safeUpload(file) {
+        try { return await uploadImage(file); }
+        catch(e) { console.warn('Image upload skipped:', file?.name, e.message); return ''; }
+      }
+
+      const cityCoverUrl = (cd.coverFiles && cd.coverFiles.length) ? await safeUpload(cd.coverFiles[0]) : '';
+      const mapUrl  = (cd.mapFiles && cd.mapFiles.length) ? await safeUpload(cd.mapFiles[0]) : '';
       const galUrls = [];
-      for (const f of cd.galFiles) galUrls.push(await uploadImage(f));
-      cd.galUrls.filter(Boolean).forEach(u => galUrls.push(u));
+      for (const f of (cd.galFiles || [])) {
+        const u = await safeUpload(f);
+        if (u) galUrls.push(u);
+      }
+      (cd.galUrls || []).filter(Boolean).forEach(u => galUrls.push(u));
 
       const cityBlocks = [];
 
