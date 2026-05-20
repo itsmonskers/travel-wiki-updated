@@ -948,8 +948,10 @@ async function handleSubmit() {
   const errors = validateForm();
   if (errors.length) { showValidator(errors); return; }
 
-  // Prepend flag emoji to name if detected
-  const name = detectedFlag ? detectedFlag + ' ' + rawName : rawName;
+  // Prepend flag emoji to name if detected.
+  // Strip any existing leading flag first so we never double it.
+  const cleanRawName = rawName.replace(/^[\u{1F1E0}-\u{1F1FF}]{2}\s*/u, '').trim();
+  const name = detectedFlag ? detectedFlag + ' ' + cleanRawName : cleanRawName;
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -970,7 +972,12 @@ async function handleSubmit() {
 
     // Build children blocks for country page
     const children = [];
-    // Note: coverUrl goes into the page cover property, not as a content block
+
+    // Description — push as a content block so it appears in the page body
+    if (desc) {
+      children.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(desc) } });
+      children.push({ object:'block', type:'divider', divider:{} });
+    }
 
     // Cities — callout header then clickable page links
     if (cityOrder.length) {
@@ -1107,7 +1114,6 @@ async function handleSubmit() {
 
       // Description
       if (cd.desc) {
-        cityBlocks.push({ object:'block', type:'heading_1', heading_1:{ rich_text: richText(city ? city : 'Description'), color:'default' } });
         cityBlocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text: richText(cd.desc) } });
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
@@ -1855,8 +1861,10 @@ async function loadCountryIntoForm(pageId, pageName) {
     // ── Fill properties ──
     const props = page.properties || {};
     const rawName = props?.Name?.title?.[0]?.plain_text || '';
-    document.getElementById('cName').value = rawName;
-    detectFlag(rawName);
+    // Strip any leading flag emoji prepended on a prior push so detectFlag won't double it
+    const strippedName = rawName.replace(/^[\u{1F1E0}-\u{1F1FF}]{2}\s*/u, '').trim();
+    document.getElementById('cName').value = strippedName;
+    detectFlag(strippedName);
 
     const status = props?.['Travel Status']?.select?.name || '';
     document.getElementById('cStatus').value = status;
@@ -1910,6 +1918,58 @@ async function loadCountryIntoForm(pageId, pageName) {
         if (text) document.getElementById('cDesc').value = text;
       }
     });
+
+    // ── Restore cities from mention blocks ──
+    // Walk the blocks looking for page-mention paragraphs (city links written on first push).
+    // For each one, fetch the city page name from Notion, then restore it into cityOrder/cityData
+    // so that the update rebuild includes them and they are not wiped.
+    const cityMentionBlocks = blocks.filter(b =>
+      b.type === 'paragraph' &&
+      b.paragraph?.rich_text?.some(rt => rt.type === 'mention' && rt.mention?.type === 'page')
+    );
+
+    if (cityMentionBlocks.length) {
+      showToast('Restoring ' + cityMentionBlocks.length + ' linked cities...', false);
+      for (const block of cityMentionBlocks) {
+        for (const rt of (block.paragraph?.rich_text || [])) {
+          if (rt.type !== 'mention' || rt.mention?.type !== 'page') continue;
+          const cityPageId = rt.mention.page.id;
+
+          // Derive city name: prefer the plain_text on the mention token,
+          // fall back to fetching the city page properties.
+          let cityName = rt.plain_text?.trim();
+          if (!cityName || cityName === 'Untitled') {
+            try {
+              const cpRes  = await fetch(`/api/notion/pages/${cityPageId}`, { headers: { 'Content-Type': 'application/json' } });
+              const cpData = await cpRes.json();
+              cityName = cpData.properties?.Name?.title?.[0]?.plain_text?.trim() || '';
+            } catch(e) { console.warn('Could not fetch city page:', e); }
+          }
+
+          if (!cityName || cityData[cityName]) continue; // skip blanks or duplicates
+
+          // Register into app state
+          cityData[cityName] = {
+            pageId: cityPageId,
+            desc: '', places: '', mapsLink: '',
+            coverFiles: [], mapFiles: [], galFiles: [], galUrls: [], galSpots: []
+          };
+          cityOrder.push(cityName);
+
+          // Render the tag (done state) and the collapsible city form block
+          renderTag(cityName, 'done');
+          renderCityForm(cityName);
+
+          // Show "Open in Notion" link on the city block
+          const slug = cityName.replace(/[^a-zA-Z0-9]/g,'_');
+          const link = document.getElementById('nlink-' + slug);
+          if (link) {
+            link.href = `https://www.notion.so/${cityPageId.replace(/-/g,'')}`;
+            link.style.display = 'inline';
+          }
+        }
+      }
+    }
 
     // ── Set edit mode ──
     editingPageId = pageId;
