@@ -943,6 +943,15 @@ async function handleSubmit() {
       const cd = cityData[city];
       if (!cd.pageId) continue;
 
+      // Validate that a URL is an absolute http/https URL before sending to Notion
+      function isValidImageUrl(url) {
+        if (!url || typeof url !== 'string') return false;
+        try {
+          const u = new URL(url);
+          return u.protocol === 'http:' || u.protocol === 'https:';
+        } catch { return false; }
+      }
+
       // Safe per-image upload — a failed image won't abort the whole city push
       async function safeUpload(file) {
         try { return await uploadImage(file); }
@@ -956,7 +965,7 @@ async function handleSubmit() {
         const u = await safeUpload(f);
         if (u) galUrls.push(u);
       }
-      (cd.galUrls || []).filter(Boolean).forEach(u => galUrls.push(u));
+      (cd.galUrls || []).filter(isValidImageUrl).forEach(u => galUrls.push(u));
 
       const cityBlocks = [];
 
@@ -986,7 +995,7 @@ async function handleSubmit() {
       }
 
       // Map screenshot
-      if (mapUrl) {
+      if (isValidImageUrl(mapUrl)) {
         cityBlocks.push({
           object:'block', type:'callout',
           callout:{
@@ -1009,7 +1018,7 @@ async function handleSubmit() {
             color:'purple_background'
           }
         });
-        galUrls.forEach(url => cityBlocks.push({
+        galUrls.filter(isValidImageUrl).forEach(url => cityBlocks.push({
           object:'block', type:'image',
           image:{ type:'external', external:{ url } }
         }));
