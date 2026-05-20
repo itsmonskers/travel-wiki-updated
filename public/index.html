@@ -535,7 +535,7 @@ document.getElementById('tagInput').addEventListener('keydown', async function(e
     e.preventDefault();
     const name = this.value.trim();
     if (cityData[name]) { this.value = ''; return; }
-    cityData[name] = { pageId: null, desc: '', places: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [] };
+    cityData[name] = { pageId: null, desc: '', places: '', mapsLink: '', coverFiles: [], mapFiles: [], galFiles: [], galUrls: [], galSpots: [] };
     cityOrder.push(name);
     this.value = '';
     renderTag(name, 'creating');
@@ -589,6 +589,7 @@ function renderCityForm(name) {
       <span class="chevron open" id="chev-${slug}">▾</span>
     </div>
     <div class="city-form-body open" id="cbody-${slug}">
+
       <div class="field">
         <label>Cover Photo</label>
         <div class="upload-zone" onclick="document.getElementById('cover-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,'cover-${slug}','covprev-${slug}','single')">
@@ -597,32 +598,37 @@ function renderCityForm(name) {
         <input type="file" id="cover-${slug}" accept="image/*" onchange="cityFileChange(event,'${safeName}','cover','covprev-${slug}')">
         <div class="img-grid" id="covprev-${slug}"></div>
       </div>
+
       <div class="field">
         <label>Description</label>
         <textarea class="short" placeholder="What makes ${name} worth visiting..." oninput="cityData['${safeName}'].desc=this.value;updatePreview()"></textarea>
       </div>
+
       <div class="field">
         <label>Places to Visit <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— one per line</span></label>
         <textarea class="short" placeholder="Dotonbori&#10;Castle..." oninput="cityData['${safeName}'].places=this.value;updatePreview()"></textarea>
       </div>
+
       <div class="field">
-        <label>Google Map Screenshot</label>
-        <div class="upload-zone" onclick="document.getElementById('map-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,'map-${slug}','mprev-${slug}','single')">
-          <div class="uicon">🗺️</div><p><strong>Click or drag</strong> map screenshot</p>
-        </div>
-        <input type="file" id="map-${slug}" accept="image/*" onchange="cityFileChange(event,'${safeName}','map','mprev-${slug}')">
-        <div class="img-grid" id="mprev-${slug}"></div>
+        <label>Google Maps Link <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— optional, paste a Maps URL for recommended spots</span></label>
+        <input type="url" id="mapslink-${slug}" placeholder="https://maps.google.com/..." oninput="cityData['${safeName}'].mapsLink=this.value">
       </div>
+
       <div class="field">
         <label>Gallery Photos</label>
         <div class="upload-zone" onclick="document.getElementById('gal-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,'gal-${slug}','gprev-${slug}','multi')">
           <div class="uicon">📸</div><p><strong>Click or drag</strong> — multiple photos</p>
         </div>
-        <input type="file" id="gal-${slug}" accept="image/*" multiple onchange="cityFileChange(event,'${safeName}','gallery','gprev-${slug}')">
+        <input type="file" id="gal-${slug}" accept="image/*" multiple onchange="cityGalleryChange(event,'${safeName}','${slug}')">
         <div class="img-grid" id="gprev-${slug}"></div>
+        <div id="galspots-${slug}" style="display:none;margin-top:10px">
+          <div style="font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">📍 Spot details per photo</div>
+          <div id="galspot-list-${slug}" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
       </div>
+
       <div class="field">
-        <label>Gallery URLs</label>
+        <label>Gallery URLs <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— optional direct image links</span></label>
         <div id="urls-${slug}">
           <div class="url-row">
             <input type="url" placeholder="https://..." oninput="updateCityUrls('${safeName}','${slug}')">
@@ -631,6 +637,16 @@ function renderCityForm(name) {
         </div>
         <button class="btn-ghost" onclick="addUrlRow('${safeName}','${slug}')">+ Add URL</button>
       </div>
+
+      <div class="field">
+        <label>Google Map Screenshot <span style="color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400;font-size:10px;margin-left:4px">— optional</span></label>
+        <div class="upload-zone" onclick="document.getElementById('map-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,'map-${slug}','mprev-${slug}','single')">
+          <div class="uicon">🗺️</div><p><strong>Click or drag</strong> map screenshot</p>
+        </div>
+        <input type="file" id="map-${slug}" accept="image/*" onchange="cityFileChange(event,'${safeName}','map','mprev-${slug}')">
+        <div class="img-grid" id="mprev-${slug}"></div>
+      </div>
+
     </div>`;
   document.getElementById('cityForms').appendChild(block);
 }
