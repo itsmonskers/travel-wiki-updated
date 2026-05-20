@@ -616,7 +616,7 @@ function renderCityForm(name) {
 
       <div class="field">
         <label>Gallery Photos</label>
-        <div class="upload-zone" onclick="document.getElementById('gal-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDrop(event,'gal-${slug}','gprev-${slug}','multi')">
+        <div class="upload-zone" onclick="document.getElementById('gal-${slug}').click()" ondragover="onDrag(event,this)" ondragleave="offDrag(this)" ondrop="onDropGallery(event,'${safeName}','${slug}')">
           <div class="uicon">📸</div><p><strong>Click or drag</strong> — multiple photos</p>
         </div>
         <input type="file" id="gal-${slug}" accept="image/*" multiple onchange="cityGalleryChange(event,'${safeName}','${slug}')">
@@ -694,34 +694,59 @@ function cityFileChange(e, name, type, prevId) {
 }
 
 function cityGalleryChange(e, name, slug) {
-  const files = Array.from(e.target.files);
-  cityData[name].galFiles = files;
-  // Re-render the spot metadata fields to match the new file list
-  renderGalSpots(name, slug, files);
-  previewFile(e, 'gprev-' + slug, 'multi');
+  const newFiles = Array.from(e.target.files);
+  // Append to existing files rather than replace, so adding more photos keeps prior ones
+  const existing = cityData[name].galFiles || [];
+  cityData[name].galFiles = existing.concat(newFiles);
+  renderGallery(name, slug);
   updatePreview();
+  // Reset input so the same file can be re-added later if needed
+  e.target.value = '';
 }
 
-function renderGalSpots(name, slug, files) {
+// Single source of truth: renders both thumbnails and spot-detail fields from cityData[name].galFiles
+function renderGallery(name, slug) {
+  const files   = cityData[name].galFiles || [];
+  const prevEl  = document.getElementById('gprev-' + slug);
   const wrapper = document.getElementById('galspots-' + slug);
   const list    = document.getElementById('galspot-list-' + slug);
-  if (!wrapper || !list) return;
+  if (!prevEl || !wrapper || !list) return;
 
-  if (!files || files.length === 0) {
+  // Preserve existing spot values by filename key
+  const existingSpots = {};
+  (cityData[name].galSpots || []).forEach(s => {
+    if (s._filename) existingSpots[s._filename] = s;
+  });
+
+  // Rebuild galSpots preserving values where filename matches
+  cityData[name].galSpots = files.map(f => ({
+    _filename: f.name,
+    placeName: existingSpots[f.name]?.placeName || '',
+    mapsLink:  existingSpots[f.name]?.mapsLink  || ''
+  }));
+
+  // --- Thumbnails ---
+  prevEl.innerHTML = '';
+  files.forEach((file, i) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const div = document.createElement('div');
+      div.className = 'img-thumb';
+      div.dataset.galIndex = i;
+      div.innerHTML = `<img src="${ev.target.result}"><button onclick="removeGalPhoto('${name.replace(/'/g,"\\'")}','${slug}',${i})">×</button>`;
+      prevEl.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // --- Spot fields ---
+  if (files.length === 0) {
     wrapper.style.display = 'none';
-    cityData[name].galSpots = [];
     return;
   }
 
-  // Preserve existing values when re-rendering
-  const existing = cityData[name].galSpots || [];
-  cityData[name].galSpots = files.map((f, i) => ({
-    placeName: existing[i]?.placeName || '',
-    mapsLink:  existing[i]?.mapsLink  || ''
-  }));
-
+  const safeName = name.replace(/'/g, "\\'");
   list.innerHTML = files.map((f, i) => {
-    const safeName = name.replace(/'/g, "\'");
     const spotName = cityData[name].galSpots[i].placeName;
     const spotLink = cityData[name].galSpots[i].mapsLink;
     return `<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
@@ -732,6 +757,22 @@ function renderGalSpots(name, slug, files) {
   }).join('');
 
   wrapper.style.display = 'block';
+}
+
+function removeGalPhoto(name, slug, index) {
+  cityData[name].galFiles.splice(index, 1);
+  renderGallery(name, slug);
+  updatePreview();
+}
+
+function onDropGallery(e, name, slug) {
+  e.preventDefault();
+  offDrag(e.currentTarget);
+  const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (!dropped.length) return;
+  cityData[name].galFiles = (cityData[name].galFiles || []).concat(dropped);
+  renderGallery(name, slug);
+  updatePreview();
 }
 
 function updateCityUrls(name, slug) {
