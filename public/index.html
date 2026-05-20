@@ -1841,6 +1841,116 @@ function renderEditList(pages) {
   }).join('');
 }
 
+async function loadCityBlocksIntoForm(cityName, cityPageId, slug) {
+  try {
+    const res    = await fetch(`/api/notion/blocks/${cityPageId}/children`, { headers: { 'Content-Type': 'application/json' } });
+    const data   = await res.json();
+    const blocks = data.results || [];
+
+    const cd = cityData[cityName];
+    if (!cd) return;
+
+    const placesList = [];
+    let inPlacesSection  = false;
+    let inGallerySection = false;
+    let pendingSpotName  = '';
+    const restoredGalSpots = [];
+
+    for (const block of blocks) {
+      const type = block.type;
+
+      if (type === 'paragraph') {
+        const text = block.paragraph?.rich_text?.map(t => t.plain_text).join('') || '';
+        // Maps link inside Places section
+        if (text.startsWith('📌 View on Google Maps:')) {
+          const urlToken = block.paragraph?.rich_text?.find(t => t.text?.link?.url);
+          if (urlToken) cd.mapsLink = urlToken.text.link.url;
+          inPlacesSection = false;
+        // Maps link for a gallery spot
+        } else if (text.startsWith('📌 ') && inGallerySection) {
+          const urlToken = block.paragraph?.rich_text?.find(t => t.text?.link?.url);
+          if (urlToken && restoredGalSpots.length > 0)
+            restoredGalSpots[restoredGalSpots.length - 1].mapsLink = urlToken.text.link.url;
+        // First non-empty paragraph = description
+        } else if (!cd.desc && text) {
+          cd.desc = text;
+        }
+        continue;
+      }
+
+      if (type === 'divider') {
+        inPlacesSection  = false;
+        inGallerySection = false;
+        pendingSpotName  = '';
+        continue;
+      }
+
+      if (type === 'callout') {
+        const icon  = block.callout?.icon?.emoji || '';
+        const label = block.callout?.rich_text?.map(t => t.plain_text).join('') || '';
+        if (icon === '\u{1F4CD}' || label.includes('Places')) { inPlacesSection = true;  inGallerySection = false; }
+        else if (icon === '\u{1F4F8}' || label.includes('Gallery')) { inGallerySection = true; inPlacesSection = false; }
+        else { inPlacesSection = false; inGallerySection = false; }
+        continue;
+      }
+
+      if (type === 'bulleted_list_item' && inPlacesSection) {
+        const text = block.bulleted_list_item?.rich_text?.map(t => t.plain_text).join('') || '';
+        if (text) placesList.push(text);
+        continue;
+      }
+
+      if (type === 'heading_3' && inGallerySection) {
+        pendingSpotName = block.heading_3?.rich_text?.map(t => t.plain_text).join('') || '';
+        continue;
+      }
+
+      if (type === 'image' && inGallerySection) {
+        const url = block.image?.external?.url || block.image?.file?.url || '';
+        if (url) {
+          restoredGalSpots.push({ _filename: url, placeName: pendingSpotName, mapsLink: '' });
+          cd.galUrls.push(url);
+        }
+        pendingSpotName = '';
+        continue;
+      }
+    }
+
+    if (placesList.length) cd.places = placesList.join('\n');
+    if (restoredGalSpots.length) cd.galSpots = restoredGalSpots;
+
+    // Populate DOM fields
+    const bodyEl = document.getElementById('cbody-' + slug);
+    if (!bodyEl) return;
+
+    const textareas = bodyEl.querySelectorAll('textarea');
+    if (textareas[0] && cd.desc)   textareas[0].value = cd.desc;
+    if (textareas[1] && cd.places) textareas[1].value = cd.places;
+
+    const mapsInput = document.getElementById('mapslink-' + slug);
+    if (mapsInput && cd.mapsLink) mapsInput.value = cd.mapsLink;
+
+    // Populate gallery URL rows with existing image URLs so they survive the next push
+    if (cd.galUrls.length) {
+      const urlsContainer = document.getElementById('urls-' + slug);
+      if (urlsContainer) {
+        urlsContainer.innerHTML = '';
+        const safeName = cityName.replace(/'/g, "\\'");
+        cd.galUrls.forEach(url => {
+          const row = document.createElement('div');
+          row.className = 'url-row';
+          row.innerHTML = `<input type="url" placeholder="https://..." value="${url}" oninput="updateCityUrls('${safeName}','${slug}')"><button class="btn-remove" onclick="removeUrlRow(this,'${safeName}','${slug}')">x</button>`;
+          urlsContainer.appendChild(row);
+        });
+        updateCityUrls(cityName, slug);
+      }
+    }
+
+  } catch(e) {
+    console.warn('Could not load city blocks for', cityName, e);
+  }
+}
+
 async function loadCountryIntoForm(pageId, pageName) {
   closeEditModal();
   showToast('Loading ' + pageName + '...', false);
@@ -1948,7 +2058,7 @@ async function loadCountryIntoForm(pageId, pageName) {
 
           if (!cityName || cityData[cityName]) continue; // skip blanks or duplicates
 
-          // Register into app state
+          // Register into app state with empty fields — will be filled by loadCityBlocks below
           cityData[cityName] = {
             pageId: cityPageId,
             desc: '', places: '', mapsLink: '',
@@ -1967,6 +2077,9 @@ async function loadCountryIntoForm(pageId, pageName) {
             link.href = `https://www.notion.so/${cityPageId.replace(/-/g,'')}`;
             link.style.display = 'inline';
           }
+
+          // Fetch the city page blocks and populate the city form fields
+          await loadCityBlocksIntoForm(cityName, cityPageId, slug);
         }
       }
     }
