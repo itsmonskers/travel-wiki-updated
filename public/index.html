@@ -677,6 +677,47 @@ function cityFileChange(e, name, type, prevId) {
   updatePreview();
 }
 
+function cityGalleryChange(e, name, slug) {
+  const files = Array.from(e.target.files);
+  cityData[name].galFiles = files;
+  // Re-render the spot metadata fields to match the new file list
+  renderGalSpots(name, slug, files);
+  previewFile(e, 'gprev-' + slug, 'multi');
+  updatePreview();
+}
+
+function renderGalSpots(name, slug, files) {
+  const wrapper = document.getElementById('galspots-' + slug);
+  const list    = document.getElementById('galspot-list-' + slug);
+  if (!wrapper || !list) return;
+
+  if (!files || files.length === 0) {
+    wrapper.style.display = 'none';
+    cityData[name].galSpots = [];
+    return;
+  }
+
+  // Preserve existing values when re-rendering
+  const existing = cityData[name].galSpots || [];
+  cityData[name].galSpots = files.map((f, i) => ({
+    placeName: existing[i]?.placeName || '',
+    mapsLink:  existing[i]?.mapsLink  || ''
+  }));
+
+  list.innerHTML = files.map((f, i) => {
+    const safeName = name.replace(/'/g, "\'");
+    const spotName = cityData[name].galSpots[i].placeName;
+    const spotLink = cityData[name].galSpots[i].mapsLink;
+    return `<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:11px;color:var(--muted2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${f.name}">📷 Photo ${i+1}: <span style="font-weight:400;font-style:italic">${f.name}</span></div>
+      <input type="text" placeholder="Place name (e.g. Dotonbori)" value="${spotName}" style="font-size:12px" oninput="cityData['${safeName}'].galSpots[${i}].placeName=this.value">
+      <input type="url"  placeholder="Google Maps link (optional)" value="${spotLink}" style="font-size:12px" oninput="cityData['${safeName}'].galSpots[${i}].mapsLink=this.value">
+    </div>`;
+  }).join('');
+
+  wrapper.style.display = 'block';
+}
+
 function updateCityUrls(name, slug) {
   cityData[name].galUrls = Array.from(document.querySelectorAll(`#urls-${slug} input[type="url"]`)).map(i=>i.value.trim()).filter(Boolean);
   updatePreview();
@@ -991,10 +1032,73 @@ async function handleSubmit() {
           object:'block', type:'bulleted_list_item',
           bulleted_list_item:{ rich_text:[{ type:'text', text:{ content: p } }] }
         }));
+        // Google Maps link for recommended spots
+        if (cd.mapsLink && isValidImageUrl(cd.mapsLink)) {
+          cityBlocks.push({
+            object:'block', type:'paragraph',
+            paragraph:{ rich_text:[
+              { type:'text', text:{ content:'📌 View on Google Maps: ' } },
+              { type:'text', text:{ content: cd.mapsLink, link:{ url: cd.mapsLink } }, annotations:{ color:'green' } }
+            ]}
+          });
+        } else if (cd.mapsLink && cd.mapsLink.startsWith('http')) {
+          cityBlocks.push({
+            object:'block', type:'paragraph',
+            paragraph:{ rich_text:[
+              { type:'text', text:{ content:'📌 View on Google Maps: ' } },
+              { type:'text', text:{ content: cd.mapsLink, link:{ url: cd.mapsLink } }, annotations:{ color:'green' } }
+            ]}
+          });
+        }
         cityBlocks.push({ object:'block', type:'divider', divider:{} });
       }
 
-      // Map screenshot
+      // Gallery — images with optional spot metadata
+      if (galUrls.length) {
+        cityBlocks.push({
+          object:'block', type:'callout',
+          callout:{
+            rich_text:[{ type:'text', text:{ content:'Gallery' }, annotations:{ bold:true } }],
+            icon:{ type:'emoji', emoji:'📸' },
+            color:'purple_background'
+          }
+        });
+        // Upload-based gallery files come first; map their spots metadata
+        const uploadedUrls = [];
+        for (const f of (cd.galFiles || [])) {
+          const u = galUrls[uploadedUrls.length] || '';
+          if (isValidImageUrl(u)) uploadedUrls.push(u);
+        }
+        // Build gallery blocks — uploaded files get spot metadata if available
+        const spots = cd.galSpots || [];
+        let uploadIdx = 0;
+        galUrls.filter(isValidImageUrl).forEach((url, i) => {
+          const isUpload = i < (cd.galFiles || []).length;
+          const spot = isUpload ? (spots[uploadIdx] || null) : null;
+          if (isUpload) uploadIdx++;
+
+          if (spot && spot.placeName) {
+            // Heading for this spot
+            cityBlocks.push({
+              object:'block', type:'heading_3',
+              heading_3:{ rich_text:[{ type:'text', text:{ content: spot.placeName } }] }
+            });
+          }
+          cityBlocks.push({ object:'block', type:'image', image:{ type:'external', external:{ url } } });
+          if (spot && spot.mapsLink && spot.mapsLink.startsWith('http')) {
+            cityBlocks.push({
+              object:'block', type:'paragraph',
+              paragraph:{ rich_text:[
+                { type:'text', text:{ content:'📌 ' } },
+                { type:'text', text:{ content:'Open in Google Maps', link:{ url: spot.mapsLink } }, annotations:{ color:'green' } }
+              ]}
+            });
+          }
+        });
+        cityBlocks.push({ object:'block', type:'divider', divider:{} });
+      }
+
+      // Map screenshot — at the bottom
       if (isValidImageUrl(mapUrl)) {
         cityBlocks.push({
           object:'block', type:'callout',
@@ -1005,23 +1109,6 @@ async function handleSubmit() {
           }
         });
         cityBlocks.push({ object:'block', type:'image', image:{ type:'external', external:{ url:mapUrl } } });
-        cityBlocks.push({ object:'block', type:'divider', divider:{} });
-      }
-
-      // Gallery — images displayed inline
-      if (galUrls.length) {
-        cityBlocks.push({
-          object:'block', type:'callout',
-          callout:{
-            rich_text:[{ type:'text', text:{ content:'Gallery' }, annotations:{ bold:true } }],
-            icon:{ type:'emoji', emoji:'📸' },
-            color:'purple_background'
-          }
-        });
-        galUrls.filter(isValidImageUrl).forEach(url => cityBlocks.push({
-          object:'block', type:'image',
-          image:{ type:'external', external:{ url } }
-        }));
       }
 
       // Clear existing placeholder blocks before pushing real content
@@ -1140,6 +1227,20 @@ function openCityDetail(cityName) {
   const detailContent = document.getElementById('cityDetailContent');
   detailView.dataset.city = cityName;
 
+  // Build gallery HTML — with per-photo spot labels if available
+  const spots = cd.galSpots || [];
+  const galHtml = galThumbs.length ? `
+    <div class="prev-section-title" style="margin-bottom:8px"><span style="display:inline-block;text-transform:none">📸</span> Gallery</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:1rem">
+      ${galThumbs.map((s,i) => {
+        const spot = spots[i];
+        return `<div>
+          ${spot && spot.placeName ? `<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">📷 ${spot.placeName}${spot.mapsLink ? ` <a href="${spot.mapsLink}" target="_blank" style="color:var(--accent);font-weight:400;font-size:10px;margin-left:4px">Maps ↗</a>` : ''}</div>` : ''}
+          <img src="${s}" style="border-radius:6px;width:100%;object-fit:cover;max-height:180px">
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
   detailContent.innerHTML = `
     <div class="prev-cover" style="height:160px">
       ${coverThumb ? `<img src="${coverThumb}">` : ''}
@@ -1150,17 +1251,14 @@ function openCityDetail(cityName) {
       ${cd.desc ? `<div class="prev-desc">${cd.desc.replace(/\n/g,'<br>')}</div>` : '<div class="prev-desc" style="color:var(--muted);font-style:italic">No description added yet</div>'}
       ${places.length ? `
         <div class="prev-section-title" style="margin-bottom:8px"><span style="display:inline-block;text-transform:none">📍</span> Places to Visit</div>
-        <div class="prev-places" style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+        <div class="prev-places" style="margin-bottom:${cd.mapsLink ? '8px' : '1rem'};padding-bottom:${cd.mapsLink ? '0' : '1rem'};${!cd.mapsLink ? 'border-bottom:1px solid var(--border)' : ''}">
           ${places.map(p=>`<span class="prev-place">${p}</span>`).join('')}
-        </div>` : ''}
+        </div>
+        ${cd.mapsLink ? `<div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)"><a href="${cd.mapsLink}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📌 View recommended spots on Google Maps ↗</a></div>` : ''}` : ''}
+      ${galHtml}
       ${mapThumb ? `
         <div class="prev-section-title" style="margin-bottom:8px"><span style="display:inline-block;text-transform:none">🗺️</span> Map</div>
         <img src="${mapThumb}" style="width:100%;border-radius:8px;margin-bottom:1rem;border:1px solid var(--border)">` : ''}
-      ${galThumbs.length ? `
-        <div class="prev-section-title" style="margin-bottom:8px"><span style="display:inline-block;text-transform:none">📸</span> Gallery</div>
-        <div class="prev-gallery" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
-          ${galThumbs.map(s=>`<img src="${s}" style="border-radius:6px;aspect-ratio:1;object-fit:cover;width:100%">`).join('')}
-        </div>` : ''}
       ${!cd.desc && !places.length && !galThumbs.length && !mapThumb ? `
         <div style="text-align:center;padding:2rem;color:var(--muted);font-size:12px">
           <div style="font-size:28px;opacity:0.3;margin-bottom:8px">🏙️</div>
