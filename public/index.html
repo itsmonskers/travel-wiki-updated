@@ -884,9 +884,7 @@ async function handleSubmit() {
     let countryPage;
     if (editingPageId) {
       // UPDATE mode — patch properties and clear+rewrite blocks
-      countryPage = await notionPatch(editingPageId, {
-        cover: coverUrl ? { type: 'external', external: { url: coverUrl } } : undefined,
-        properties: {
+      const patchProps = {
           Name:                    { title: richText(name) },
           'Description of Country':{ rich_text: richText(desc) },
           Clothing:                { rich_text: richText(document.getElementById('cClothing').value.trim()) },
@@ -897,10 +895,14 @@ async function handleSubmit() {
           Food:                    { rich_text: richText(document.getElementById('cFood').value.trim()) },
           Laundry:                 { rich_text: richText(document.getElementById('cLaundry').value.trim()) },
           Payments:                { rich_text: richText(document.getElementById('cPayments').value.trim()) },
-          'Travel Status':         { select: document.getElementById('cStatus').value ? { name: document.getElementById('cStatus').value } : undefined },
           'Budget':                { rich_text: richText(document.getElementById('cBudget').value.trim() ? document.getElementById('cCurrency').value + ' ' + document.getElementById('cBudget').value.trim() : '') }
+        };
+        if (document.getElementById('cStatus').value) {
+          patchProps['Travel Status'] = { select: { name: document.getElementById('cStatus').value } };
         }
-      });
+        const patchBody = { properties: patchProps };
+        if (coverUrl) patchBody.cover = { type: 'external', external: { url: coverUrl } };
+        countryPage = await notionPatch(editingPageId, patchBody);
       await clearPageBlocks(editingPageId);
       if (children.length) await notionAppendBlocks(editingPageId, children);
       // Reset edit mode
@@ -909,10 +911,7 @@ async function handleSubmit() {
       document.getElementById('submitBtn').textContent = 'Push to Notion ↗';
     } else {
       // CREATE mode — make new page
-      countryPage = await notionPost({
-      parent: { database_id: COUNTRIES_DB },
-      cover: coverUrl ? { type: 'external', external: { url: coverUrl } } : undefined,
-      properties: {
+      const createProps = {
         Name:                    { title: richText(name) },
         'Description of Country':{ rich_text: richText(desc) },
         Clothing:                { rich_text: richText(document.getElementById('cClothing').value.trim()) },
@@ -923,11 +922,14 @@ async function handleSubmit() {
         Food:                    { rich_text: richText(document.getElementById('cFood').value.trim()) },
         Laundry:                 { rich_text: richText(document.getElementById('cLaundry').value.trim()) },
         Payments:                { rich_text: richText(document.getElementById('cPayments').value.trim()) },
-        'Travel Status':         { select: document.getElementById('cStatus').value ? { name: document.getElementById('cStatus').value } : undefined },
         'Budget':                { rich_text: richText(document.getElementById('cBudget').value.trim() ? document.getElementById('cCurrency').value + ' ' + document.getElementById('cBudget').value.trim() : '') }
-      },
-      children
-      });
+      };
+      if (document.getElementById('cStatus').value) {
+        createProps['Travel Status'] = { select: { name: document.getElementById('cStatus').value } };
+      }
+      const createBody = { parent: { database_id: COUNTRIES_DB }, properties: createProps, children };
+      if (coverUrl) createBody.cover = { type: 'external', external: { url: coverUrl } };
+      countryPage = await notionPost(createBody);
     } // end create/update branch
 
     // Log to push history
